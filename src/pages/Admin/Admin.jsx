@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Plus, Edit3, Trash2, Save, CheckCircle, Clock, LogIn, Shield, Users } from 'lucide-react';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://siyaram-boys-pg-backend.vercel.app/api';
 
 const AdminPanel = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);

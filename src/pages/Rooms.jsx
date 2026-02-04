@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://siyaram-boys-pg-backend.vercel.app/api';
 
 const Rooms = () => {
     const [activeRoom, setActiveRoom] = useState(null);
