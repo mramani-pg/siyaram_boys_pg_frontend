@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import {
     Users, MessageCircle, Phone, Bed, CheckCircle, Shield, Clock, MapPin,
     ArrowRight, Sparkles, TrendingUp, Award, Target
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-
-const API_BASE = 'https://siyaram-boys-pg-backend.vercel.app/api';
+import api from '../api';
 
 const Rooms = () => {
     const [activeRoom, setActiveRoom] = useState(null);
@@ -24,9 +21,8 @@ const Rooms = () => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const res = await axios.get(`${API_BASE}/rooms`, {
-                headers: token ? { Authorization: `Bearer ${token}` } : {}
-            });
+            const res = await api.get("/rooms");
+
             setRooms(res.data);
             if (res.data.length > 0) {
                 setActiveRoom(res.data[0]._id);

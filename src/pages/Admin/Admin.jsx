@@ -1,131 +1,152 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Plus, Edit3, Trash2, Save, CheckCircle, Clock, LogIn, Shield, Users } from 'lucide-react';
 
-const API_BASE = 'https://siyaram-boys-pg-backend.vercel.app/api';
+import { Plus, Edit3, Trash2, Save, CheckCircle, Clock, LogIn, Shield, Users } from 'lucide-react';
+import api from '../../api';
+
 
 const AdminPanel = () => {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [token, setToken] = useState(localStorage.getItem('token') || '');
-    const [user, setUser] = useState(null);
-    const [rooms, setRooms] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [loginData, setLoginData] = useState({ username: '', password: '' });
-    const [editingId, setEditingId] = useState(null);
-    const [formData, setFormData] = useState({
-        name: '', sharing: '', rent: '', availability: 0, features: ''
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
+  const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const [loginData, setLoginData] = useState({
+    username: '',
+    password: ''
+  });
+
+  const [editingId, setEditingId] = useState(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    sharing: '',
+    rent: '',
+    availability: 0,
+    features: ''
+  });
+
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      setIsLoggedIn(true);
+      fetchRooms();
+    }
+  }, []);
+
+  const login = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await api.post("/auth/login", loginData);
+
+      localStorage.setItem("token", res.data.token);
+      setUser(res.data.user);
+      setIsLoggedIn(true);
+      fetchRooms();
+
+      setLoginData({ username: "", password: "" });
+
+    } catch (err) {
+      alert(err.response?.data?.message || "Login failed");
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem("token");
+    setIsLoggedIn(false);
+    setUser(null);
+    setRooms([]);
+  };
+
+
+  const fetchRooms = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get("/rooms");
+      setRooms(res.data);
+    } catch (err) {
+      console.log(err);
+      alert("Failed to load rooms");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  const saveRoom = async (e) => {
+    e.preventDefault();
+
+    const roomData = {
+      ...formData,
+      features: formData.features
+        .split(",")
+        .map(f => f.trim())
+        .filter(Boolean)
+    };
+
+    try {
+      if (editingId) {
+        await api.put(`/rooms/${editingId}`, roomData);
+      } else {
+        await api.post("/rooms", roomData);
+      }
+
+      fetchRooms();
+      setEditingId(null);
+      setFormData({
+        name: '',
+        sharing: '',
+        rent: '',
+        availability: 0,
+        features: ''
+      });
+
+      alert("Room saved successfully");
+
+    } catch (err) {
+      alert(err.response?.data?.message || "Save failed");
+    }
+  };
+
+
+  const editRoom = (room) => {
+    setEditingId(room._id);
+    setFormData({
+      name: room.name,
+      sharing: room.sharing,
+      rent: room.rent,
+      availability: room.availability,
+      features: room.features.join(", ")
     });
+  };
 
-    // Set axios defaults
-    useEffect(() => {
-        if (token) {
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            localStorage.setItem('token', token);
-            setIsLoggedIn(true);
-            fetchRooms();
-        } else {
-            delete axios.defaults.headers.common['Authorization'];
-            localStorage.removeItem('token');
-        }
-    }, [token]);
+  const deleteRoom = async (id) => {
+    if (!window.confirm("Delete this room?")) return;
 
-    const login = async (e) => {
-        e.preventDefault();
-        try {
-            console.log('🔐 Logging in...', loginData);
-            const res = await axios.post(`${API_BASE}/auth/login`, loginData, {
-                headers: { 'Content-Type': 'application/json' }
-            });
-            console.log('✅ Login success:', res.data);
-            setToken(res.data.token);
-            setUser(res.data.user);
-            setLoginData({ username: '', password: '' });
-        } catch (err) {
-            console.error('❌ Login error:', err.response?.data || err.message);
-            alert(err.response?.data?.message || 'Login failed! Use: admin / admin123');
-        }
-    };
+    try {
+      await api.delete(`/rooms/${id}`);
+      fetchRooms();
+      alert("Room deleted");
+    } catch (err) {
+      alert("Delete failed");
+    }
+  };
 
-    const logout = () => {
-        setToken('');
-        setUser(null);
-        setIsLoggedIn(false);
-        setRooms([]);
-    };
 
-    const fetchRooms = async () => {
-        try {
-            setLoading(true);
-            const res = await axios.get(`${API_BASE}/rooms`);
-            setRooms(res.data);
-            console.log('📋 Rooms loaded:', res.data.length);
-        } catch (err) {
-            console.error('Error fetching rooms:', err.response?.data || err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
+  const quickUpdate = async (id, availability) => {
 
-    const saveRoom = async (e) => {
-        e.preventDefault();
-        try {
-            const roomData = {
-                ...formData,
-                features: formData.features.split(',').map(f => f.trim()).filter(f => f)
-            };
+    const status =
+      availability === 0 ? "full" :
+      availability <= 1 ? "limited" :
+      "available";
 
-            if (editingId) {
-                await axios.put(`${API_BASE}/rooms/${editingId}`, roomData);
-            } else {
-                await axios.post(`${API_BASE}/rooms`, roomData);
-            }
-            fetchRooms();
-            setFormData({ name: '', sharing: '', rent: '', availability: 0, features: '' });
-            setEditingId(null);
-            alert('Room saved successfully!');
-        } catch (err) {
-            console.error('Save error:', err.response?.data);
-            alert('Error saving room: ' + (err.response?.data?.message || 'Try again'));
-        }
-    };
-
-    const editRoom = (room) => {
-        setFormData({
-            name: room.name,
-            sharing: room.sharing,
-            rent: room.rent,
-            availability: room.availability,
-            features: room.features.join(', ')
-        });
-        setEditingId(room._id);
-    };
-
-    const deleteRoom = async (id) => {
-        if (confirm('Delete this room?')) {
-            try {
-                await axios.delete(`${API_BASE}/rooms/${id}`);
-                fetchRooms();
-                alert('Room deleted!');
-            } catch (err) {
-                alert('Delete failed!');
-            }
-        }
-    };
-
-    const quickUpdate = async (roomId, newAvail) => {
-        try {
-            const room = rooms.find(r => r._id === roomId);
-            const status = newAvail === 0 ? 'full' : newAvail <= 1 ? 'limited' : 'available';
-            await axios.put(`${API_BASE}/rooms/${roomId}`, {
-                ...room,
-                availability: newAvail,
-                status
-            });
-            fetchRooms();
-        } catch (err) {
-            alert('Update failed!');
-        }
-    };
+    try {
+      await api.put(`/rooms/${id}`, { availability, status });
+      fetchRooms();
+    } catch (err) {
+      alert("Update failed");
+    }
+  };
 
     // LOGIN SCREEN
     if (!isLoggedIn) {
@@ -173,10 +194,10 @@ const AdminPanel = () => {
         );
     }
 
-    // ADMIN DASHBOARD
+ 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white p-8 py-22">
-            {/* Header */}
+
             <div className="max-w-6xl mx-auto">
                 <div className="flex justify-between items-center mb-12 p-6 bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-white/10">
                     <div className="flex items-center gap-6">
@@ -198,7 +219,7 @@ const AdminPanel = () => {
                     </button>
                 </div>
 
-                {/* Add/Edit Form */}
+                
                 <div className="bg-gray-800/50 backdrop-blur-sm p-8 rounded-3xl mb-12 border border-gray-700/50">
                     <h2 className="text-3xl font-bold mb-8">{editingId ? 'Edit Room' : 'Add New Room'}</h2>
                     <form onSubmit={saveRoom} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -263,7 +284,7 @@ const AdminPanel = () => {
                     </form>
                 </div>
 
-                {/* Rooms List */}
+
                 {loading ? (
                     <div className="text-center py-20">
                         <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -292,8 +313,8 @@ const AdminPanel = () => {
                                             <p className="text-xl text-gray-400">{room.sharing}</p>
                                         </div>
                                         <div className={`px-4 py-2 rounded-full text-sm font-bold ${room.status === 'available' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
-                                                room.status === 'limited' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' :
-                                                    'bg-red-500/20 text-red-400 border-red-500/30'
+                                            room.status === 'limited' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' :
+                                                'bg-red-500/20 text-red-400 border-red-500/30'
                                             } border py-2 px-4`}>
                                             {room.status?.toUpperCase() || 'AVAILABLE'}
                                         </div>
@@ -310,15 +331,15 @@ const AdminPanel = () => {
                                         </div>
                                     </div>
 
-                                    {/* Quick Update Buttons */}
+                                    
                                     <div className="grid grid-cols-4 gap-3 mb-8">
                                         {[3, 2, 1, 0].map(num => (
                                             <button
                                                 key={num}
                                                 onClick={() => quickUpdate(room._id, num)}
                                                 className={`p-4 rounded-xl font-bold text-xl transition-all group-hover:scale-105 ${room.availability === num
-                                                        ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/25'
-                                                        : 'bg-gray-700/50 hover:bg-gray-600 text-gray-300 border border-gray-600 hover:border-gray-500'
+                                                    ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/25'
+                                                    : 'bg-gray-700/50 hover:bg-gray-600 text-gray-300 border border-gray-600 hover:border-gray-500'
                                                     }`}
                                             >
                                                 {num}
@@ -326,7 +347,7 @@ const AdminPanel = () => {
                                         ))}
                                     </div>
 
-                                    {/* Features */}
+                                    
                                     {room.features?.length > 0 && (
                                         <div className="mb-8">
                                             <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
@@ -342,8 +363,7 @@ const AdminPanel = () => {
                                             </div>
                                         </div>
                                     )}
-
-                                    {/* Action Buttons */}
+                                    
                                     <div className="flex gap-4 pt-6 border-t border-gray-700">
                                         <button
                                             onClick={() => editRoom(room)}
