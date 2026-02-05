@@ -28,7 +28,7 @@ const Rooms = () => {
                 setActiveRoom(res.data[0]._id);
             }
         } catch (err) {
-            console.log('Using fallback rooms');
+            console.log('Using fallback rooms'.err.message);
             setRooms([
                 {
                     _id: '1', name: 'SINGLE ROOM', sharing: 'SOLO OCCUPANCY',
