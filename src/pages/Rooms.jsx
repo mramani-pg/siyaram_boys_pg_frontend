@@ -165,7 +165,7 @@ const Rooms = () => {
                             };
 
 
-                            const colors = roomColors[room.name] || roomColors['SINGLE ROOM'];
+                            const colors = roomColors[room.name] ?? roomColors['SINGLE ROOM'];
 
                             return (
                                 <div
