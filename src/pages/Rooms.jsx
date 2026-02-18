@@ -164,7 +164,7 @@ const Rooms = () => {
                                 }
                             };
 
-                            const colors = roomColors[room.name] ?? roomColors['SINGLE ROOM'];
+                            const colors = roomColors[room.name] ?? roomColors['DOUBLE SHARING'];
                             if (!colors) return null;
                             
                             return (
