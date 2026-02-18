@@ -164,9 +164,9 @@ const Rooms = () => {
                                 }
                             };
 
-
                             const colors = roomColors[room.name] ?? roomColors['SINGLE ROOM'];
-
+                            if (!colors) return null;
+                            
                             return (
                                 <div
                                     key={room._id}
